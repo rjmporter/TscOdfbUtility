@@ -18,100 +18,123 @@ namespace ConsoleApplication1
 {
    class Program
    {
-      [STAThread]
-      static void Main(string[] args)
+      static void Main( string[] args )
       {
 
-         var oneDriveResourceId = ConfigurationManager.AppSettings["oneDriveResourceId"];
-         var oneDriveApiEndpoint = ConfigurationManager.AppSettings["oneDriveApiEndpoint"];
-         var graphResourceId = ConfigurationManager.AppSettings["graphResourceId"];
-         var graphApiEndpoint = ConfigurationManager.AppSettings["graphApiEndpoint"];
+         var oneDriveResourceId = ConfigurationManager.AppSettings[ "oneDriveResourceId" ];
+         var oneDriveApiEndpoint = ConfigurationManager.AppSettings[ "oneDriveApiEndpoint" ];
+         var graphResourceId = ConfigurationManager.AppSettings[ "graphResourceId" ];
+         var graphApiEndpoint = ConfigurationManager.AppSettings[ "graphApiEndpoint" ];
 
-         adalAuthContext authctx = new adalAuthContext("https://login.microsoftonline.com/common", false);
-         var result1 = authctx.AcquireToken(oneDriveResourceId, "17f3b8e2-7365-4f52-bae7-a2dd70310cdf", new Uri("http://localhost/eb2c041088c22f67fecaffda29528308"));
-         var token1 = result1.AccessToken;
-
-         var result2 = authctx.AcquireToken(graphResourceId, "17f3b8e2-7365-4f52-bae7-a2dd70310cdf", new Uri("http://localhost/eb2c041088c22f67fecaffda29528308"));
-         var token2 = result2.AccessToken;
-
-         do {
+         adalAuthContext authctx = new adalAuthContext( "https://login.microsoftonline.com/common", false );
+         var oneDriveTokenResponse = authctx.AcquireToken( oneDriveResourceId, "17f3b8e2-7365-4f52-bae7-a2dd70310cdf", new Uri( "http://localhost/eb2c041088c22f67fecaffda29528308" ) );
+         var graphTokenResponse = authctx.AcquireToken( graphResourceId, "17f3b8e2-7365-4f52-bae7-a2dd70310cdf", new Uri( "http://localhost/eb2c041088c22f67fecaffda29528308" ) );
+         do
+         {
             Console.WriteLine();
-            Console.WriteLine("Enter API call");
+            Console.WriteLine( "Enter API call" );
             var call = Console.ReadLine();
 
-            Console.WriteLine("Choose an Option");
-            Console.WriteLine("1. Call with OneDrive api");
-            Console.WriteLine("2. Call with Graph api");
+            Console.WriteLine( "Choose an Option" );
+            Console.WriteLine( "1. Call with OneDrive api" );
+            Console.WriteLine( "2. Call with Graph api" );
 
             string apiCall = "";
             string authHeader = "";
-
-
-            var api = int.Parse(Console.ReadLine());
-            switch (api)
+            Task tApiCall=null;
+            var api = int.Parse( Console.ReadLine() );
+            switch ( api )
             {
                case 1:
-                  apiCall = oneDriveApiEndpoint + call.Trim('/');
-                  authHeader = result1.CreateAuthorizationHeader();
+                  apiCall = oneDriveApiEndpoint + call.Trim( '/' );
+                  authHeader = oneDriveTokenResponse.CreateAuthorizationHeader();
                   break;
                case 2:
                default:
 
-                  authHeader = result2.CreateAuthorizationHeader();
-                  apiCall = graphApiEndpoint + call.Trim('/');
+                  authHeader = graphTokenResponse.CreateAuthorizationHeader();
+                  apiCall = graphApiEndpoint + call.Trim( '/' );
 
                   break;
             }
             try
             {
-               using (WebClient wc = new WebClient())
-               {
-
-                  wc.Headers.Add("Authorization", authHeader);
-                  var response = wc.DownloadString(apiCall);
-                  var jobj = JObject.Parse(response);
-                  Console.WriteLine(jobj.ToString(Formatting.Indented));
-
-               }
-            } 
-            catch (Exception ex) {
-               Console.WriteLine(ex.ToString());
+               tApiCall = GetApiResponse( authHeader, apiCall );
             }
-            Console.Write("Try again? (Y/N)");
-         } while (Console.ReadKey().Key == ConsoleKey.Y);
-            //DesktopSharePointContextFactory factory = new DesktopSharePointContextFactory();
-            //var ctx = factory.GetContext("https://tscdev-my.sharepoint.com/personal/test_o365_tsc-dev_co/");
-            //var guid = "21ba344da9274a04bc8093d891f6974e";
-            //var info = GetInfo(ctx, guid);
+            catch ( WebException webEx )
+            {
+               switch ( webEx.Status )
+               {
+                  case WebExceptionStatus.ProtocolError:
+                     oneDriveTokenResponse = authctx.AcquireToken( oneDriveResourceId );
+                     graphTokenResponse = authctx.AcquireToken( graphResourceId );
+                     Console.WriteLine( webEx.ToString() );
+                     break;
+                  default:
+                     throw;
+               }
+            }
+            catch ( Exception ex )
+            {
+               Console.WriteLine( ex.ToString() );
+            }
+            tApiCall?.Wait();
+         } while ( !GetContinueResponse() );
 
-            //Console.WriteLine("user: {0}\n\nfilename:{1}", info.UserName, info.ListRelativeUrl);
-         }
+         Console.ReadLine();
+      }
+      private static async Task GetApiResponse( string authHeader, string apiCall )
+      {
+         using ( WebClient wc = new WebClient() )
+         {
+            wc.Headers.Add( "Authorization", authHeader );
+            var wcReply = await wc.DownloadStringTaskAsync( apiCall );
             
-         
+            var jobj = JObject.Parse( wcReply );
+            Console.WriteLine( jobj.ToString( Formatting.Indented ) );
+         }
+      }
+      private static bool GetContinueResponse()
+      {
+         Console.Write( "Try again? (Y/N)" );
+         ConsoleKey key;
+         string response = Console.ReadLine();
+         Enum.TryParse( response?.ToCharArray()[ 0 ].ToString(), out key );
+         bool isDone = key == ConsoleKey.Y;
+         return isDone;
+      }
 
       private struct FilesApiInfo
       {
          public string UserName;
          public string ListRelativeUrl;
       }
-      private static FilesApiInfo GetInfo(ClientContext ctx, string guid)
+      private static FilesApiInfo GetInfo( ClientContext ctx, string guid )
       {
          FilesApiInfo retVal;
 
-         var file = ctx.Web.GetFileById(Guid.Parse(guid));
+         var file = ctx.Web.GetFileById( Guid.Parse( guid ) );
          var listFolder = file.ListItemAllFields.ParentList.RootFolder;
          var query = new CamlQuery();
-         var userResult = ctx.LoadQuery(ctx.Web.SiteUserInfoList.GetItems(query)).Where(u => (bool)u.FieldValues["IsSiteAdmin"]);
-         ctx.Load(file);
-         ctx.Load(listFolder);
+         var userResult = ctx.LoadQuery( ctx.Web.SiteUserInfoList.GetItems( query ) ).Where( u => ( bool )u.FieldValues[ "IsSiteAdmin" ] );
+         ctx.Load( file );
+         ctx.Load( listFolder );
          ctx.ExecuteQuery();
 
-         retVal.UserName = userResult.FirstOrDefault().FieldValues["UserName"].ToString();
-         retVal.ListRelativeUrl = file.ServerRelativeUrl.Replace(listFolder.ServerRelativeUrl, "").TrimStart('/');
+         retVal.UserName = userResult.FirstOrDefault().FieldValues[ "UserName" ].ToString();
+         retVal.ListRelativeUrl = file.ServerRelativeUrl.Replace( listFolder.ServerRelativeUrl, "" ).TrimStart( '/' );
 
          return retVal;
 
       }
 
+
+   }
+   public static class AuthContextExtentions
+   {
+      public static AuthenticationResult AcquireToken( this adalAuthContext ctx, string resourceId )
+      {
+         return ctx.AcquireToken( resourceId, "17f3b8e2-7365-4f52-bae7-a2dd70310cdf", new Uri( "http://localhost/eb2c041088c22f67fecaffda29528308" ) );
+      }
    }
 }
