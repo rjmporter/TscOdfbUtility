@@ -9,7 +9,6 @@ using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens;
 using adalAuthContext = Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext;
-using TechSmith.Custom.SharePoint;
 using Microsoft.SharePoint.Client;
 using System.Diagnostics;
 using System.Configuration;

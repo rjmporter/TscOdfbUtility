@@ -12,6 +12,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Xml.Linq" #>
 <#@ import namespace="System.Xml.XPath" #>
+<#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="Microsoft.VisualBasic" #>
 <#@ template language="C#" debug="True" hostspecific="True"  #>
 <#@ output extension=".Generated.cs" #>
@@ -31,7 +32,8 @@ var subNamespace =
     templateDir.Replace(fullPath, string.Empty).Replace("\\", ".");
     var projectNamespace = string.Concat(defaultNamespace, subNamespace);
     var className = "SiteSettings";
-	var configFiles = System.IO.Directory.EnumerateFiles(fullPath, "app.config", System.IO.SearchOption.AllDirectories );
+	List<string> configFiles = new List<string>(System.IO.Directory.EnumerateFiles(fullPath, "app.config", System.IO.SearchOption.AllDirectories ));
+   configFiles.AddRange(System.IO.Directory.EnumerateFiles(fullPath, "web.config", System.IO.SearchOption.AllDirectories ));
     
 	foreach(var file in configFiles)
 	{
@@ -105,7 +107,7 @@ namespace <#= projectNamespace #>
 	  {
 			sb.Append("\t").Append("\t").Append("\t");
 			var key = result.Attribute(XName.Get("key")).Value;
-			
+			key = key.Substring(0,1).ToUpper() + key.Substring(1);
 			sb.AppendFormat("\t{0} = {1} settings[\"{0}\"];", cleanUpNames(key) , GetConverter(key));
 			sb.AppendLine();
 		}
@@ -127,6 +129,7 @@ namespace <#= projectNamespace #>
 
 		foreach (XElement result in doc.XPathSelectElements("./configuration/appSettings/add")) {
 			var key = cleanUpNames(result.Attribute(XName.Get("key")).Value);
+			key = key.Substring(0,1).ToUpper() + key.Substring(1);
 			var value = result.Attribute(XName.Get("value")).Value;
 			sb.Append(Constants.vbTab).Append(Constants.vbTab);
 			sb.Append("/// <summary>").AppendLine();
@@ -135,8 +138,9 @@ namespace <#= projectNamespace #>
 			sb.Append(Constants.vbTab).Append(Constants.vbTab);
 			sb.Append("/// </summary>").AppendLine();
 			sb.Append(Constants.vbTab).Append(Constants.vbTab);
-			sb.AppendFormat("public static readonly {0} {1}; ", GetPropertyType(value), key);
-			sb.AppendLine().AppendLine();
+			sb.AppendFormat("public static {0} {1} ", GetPropertyType(value), key);
+			sb.AppendLine();
+		 sb.AppendLine("\t\t{\r\n\t\t\tget;\r\n\t\t}");
 		}
 
 		return sb.ToString();

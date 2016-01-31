@@ -14,24 +14,46 @@ namespace o365ApiTester
 {
    public partial class Form1 : Form
    {
-      private AuthenticationResult discoveryResult;
+      private List<KeyValuePair<string, CapabilityDiscoveryResult>> discoveryResults;
       private AuthenticationResult graphApiResult;
       private AuthenticationResult oneDriveApiResult;
       private static readonly AuthenticationContext authContext =
-            new AuthenticationContext( ConfigurationManager.AppSettings[ "ida:AADInstance" ] );
-      
+            new AuthenticationContext( SiteSettings.Authority );
+      private CapabilityDiscoveryResult selectedService;
+
       public Form1()
       {
          InitializeComponent();
+         discoveryResults = new List<KeyValuePair<string, CapabilityDiscoveryResult>>();
       }
 
-      private void Form1_Load( object sender, EventArgs e )
+      private async void Form1_Load( object sender, EventArgs e )
       {
          
-         DiscoveryClient discoveryClient = new DiscoveryClient(async() =>
-                                                                           {
-                                                                             authContext.AcquireToken( "https://api.office.com/discovery/",  )
-                                                                           });
+         DiscoveryClient discoveryClient = new DiscoveryClient(() =>    {
+                                                                           var result = authContext.AcquireToken( "https://api.office.com/discovery/", SiteSettings.ClientId, new Uri(SiteSettings.RedirectUrl));
+                                                                           return result.AccessToken;
+                                                                        });
+         var capabilities =  await discoveryClient.DiscoverCapabilitiesAsync();
+
+         foreach ( var capability in capabilities )
+         {
+            if ( capability.Key == "RootSite" )
+            {
+               var sharePointItem = new KeyValuePair<string, CapabilityDiscoveryResult>( "SharePoint", capability.Value );
+               discoveryResults.Add( sharePointItem );
+            }
+            else
+            discoveryResults.Add( capability );
+         }
+         comboBox1.DisplayMember = "Key";
+         comboBox1.ValueMember = "Value";
+         comboBox1.DataSource = discoveryResults;
+
+      }
+      private void comboBox1_SelectedIndexChanged( object sender, EventArgs e )
+      {
+         selectedService = (CapabilityDiscoveryResult) comboBox1.SelectedValue;
       }
    }
 }

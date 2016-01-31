@@ -123,18 +123,6 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="TechSmith.Custom.SharePoint, Version=1.0.1.29210, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\TechSmith.SharePoint.Extensions.3.0.0\lib\net45\TechSmith.Custom.SharePoint.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="TechSmith.Custom.SharePoint.Web, Version=1.0.1.29211, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\TechSmith.SharePoint.Extensions.3.0.0\lib\net45\TechSmith.Custom.SharePoint.Web.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="TechSmith.Custom.SharePoint.Windows, Version=1.0.1.29211, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\TechSmith.SharePoint.Extensions.3.0.0\lib\net45\TechSmith.Custom.SharePoint.Windows.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
