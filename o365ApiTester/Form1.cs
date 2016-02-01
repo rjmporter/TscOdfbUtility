@@ -54,6 +54,15 @@ namespace o365ApiTester
       private void comboBox1_SelectedIndexChanged( object sender, EventArgs e )
       {
          selectedService = (CapabilityDiscoveryResult) comboBox1.SelectedValue;
+         if ( comboBox1.SelectedText == "RootSite" )
+         {
+            var selectSharePointSite = new SelectSharePointSite();
+            var result = selectSharePointSite.DialogResult;
+            if ( result == DialogResult.OK )
+            {
+
+            }
+         }
       }
    }
 }
