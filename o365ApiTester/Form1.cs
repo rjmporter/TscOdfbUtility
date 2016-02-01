@@ -4,65 +4,225 @@ using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Office365.Discovery;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace o365ApiTester
 {
    public partial class Form1 : Form
    {
-      private List<KeyValuePair<string, CapabilityDiscoveryResult>> discoveryResults;
-      private AuthenticationResult graphApiResult;
-      private AuthenticationResult oneDriveApiResult;
-      private static readonly AuthenticationContext authContext =
-            new AuthenticationContext( SiteSettings.Authority );
-      private CapabilityDiscoveryResult selectedService;
+      private HttpWebRequest _webClientRest = null;
+      private readonly List<KeyValuePair<string, CapabilityDiscoveryResult>> _discoveryResults;
+      private AuthenticationResult _selectedResourceAuthResult;
+      private CapabilityDiscoveryResult _selectedService;
+      private string _selectedApiEnpoint;
+      private HttpMethod _method;
+      private string _apiCall;
+      private string _apiBody;
+      private string _apiPayload = string.Empty;
 
       public Form1()
       {
          InitializeComponent();
-         discoveryResults = new List<KeyValuePair<string, CapabilityDiscoveryResult>>();
+         _discoveryResults = new List<KeyValuePair<string, CapabilityDiscoveryResult>>();
       }
 
       private async void Form1_Load( object sender, EventArgs e )
       {
          
          DiscoveryClient discoveryClient = new DiscoveryClient(() =>    {
-                                                                           var result = authContext.AcquireToken( "https://api.office.com/discovery/", SiteSettings.ClientId, new Uri(SiteSettings.RedirectUrl));
+                                                                           var result = Program.authContext.AcquireToken( "https://api.office.com/discovery/", SiteSettings.ClientId, new Uri(SiteSettings.RedirectUrl));
                                                                            return result.AccessToken;
                                                                         });
          var capabilities =  await discoveryClient.DiscoverCapabilitiesAsync();
+         var fileSources = new[]
+                           {
+                                 "MyFiles",
+                                 "RootSite"
+                           };
+         DataTable dt = new DataTable("Capabilites");
+         dt.Columns.Add( "Name", typeof ( string ) );
+         dt.Columns.Add( "CapabilityResult", typeof ( CapabilityDiscoveryResult ) );
 
-         foreach ( var capability in capabilities )
+         dt.Rows.Add( "<Select a Resource>", null );
+         dt.Rows.Add(
+               "GraphApi",
+               new CapabilityDiscoveryResult( new Uri( SiteSettings.GraphApiEndpoint.Trim('/') ), SiteSettings.GraphResourceId ) );
+         foreach ( var capability in capabilities.Where(c=>fileSources.Contains(c.Key)  ) )
          {
             if ( capability.Key == "RootSite" )
             {
                var sharePointItem = new KeyValuePair<string, CapabilityDiscoveryResult>( "SharePoint", capability.Value );
-               discoveryResults.Add( sharePointItem );
+               dt.Rows.Add( sharePointItem.Key, sharePointItem.Value );
+            }
+            else if ( capability.Key == "MyFiles" )
+            {
+               var oneDriveItem = new KeyValuePair<string, CapabilityDiscoveryResult>( "OneDrive", capability.Value );
+               dt.Rows.Add( oneDriveItem.Key, oneDriveItem.Value );
             }
             else
-            discoveryResults.Add( capability );
+               dt.Rows.Add( capability.Key, capability.Value );
          }
-         comboBox1.DisplayMember = "Key";
-         comboBox1.ValueMember = "Value";
-         comboBox1.DataSource = discoveryResults;
+         comboBox1.DisplayMember = "Name";
+         comboBox1.ValueMember = "CapabilityResult";
+         
+         comboBox1.DataSource = dt;
 
       }
       private void comboBox1_SelectedIndexChanged( object sender, EventArgs e )
       {
-         selectedService = (CapabilityDiscoveryResult) comboBox1.SelectedValue;
-         if ( comboBox1.SelectedText == "RootSite" )
+        
+         _selectedService = comboBox1.SelectedValue as CapabilityDiscoveryResult;
+         if ( _selectedService != null )
          {
-            var selectSharePointSite = new SelectSharePointSite();
-            var result = selectSharePointSite.DialogResult;
-            if ( result == DialogResult.OK )
+            string resourceId = _selectedService.ServiceResourceId;
+            _selectedApiEnpoint = _selectedService.ServiceEndpointUri.AbsoluteUri;
+
+            if ( comboBox1.Text.Equals( "SharePoint", StringComparison.OrdinalIgnoreCase ) )
             {
+               GetSharePointEnpoint( resourceId );
+            }
+            if ( comboBox1.Text.Equals( "OneDrive", StringComparison.OrdinalIgnoreCase ) )
+            {
+               _selectedApiEnpoint = _selectedApiEnpoint.Replace( "v1.0", "v2.0" ).Replace( "/me", "" );
+            }
+            _selectedResourceAuthResult = Program.authContext.AcquireToken(
+                  resourceId,
+                  SiteSettings.ClientId,
+                  new Uri( SiteSettings.RedirectUrl ) );
+
+            lblServiceInfoOutput.Text =     $"Selected Resource:   {resourceId}\r\n"
+                                          + $"Selected Endpoint:   {_selectedApiEnpoint}\r\n"
+                                          + $"User:                {_selectedResourceAuthResult.UserInfo.DisplayableId}";
+           
+         }
+      }
+
+      private void GetSharePointEnpoint( string resourceId )
+      {
+         var selectSharePointSite = new SelectSharePointSite();
+         string relativeApiEnpoint = _selectedApiEnpoint.Replace( resourceId, "" ).Trim( '/' );
+         selectSharePointSite.SharePointRootSite = _selectedService.ServiceResourceId;
+         var result = selectSharePointSite.ShowDialog();
+         if ( result == DialogResult.OK )
+         {
+            _selectedApiEnpoint = selectSharePointSite.SelectedSite.Trim( '/' ) + "/" + relativeApiEnpoint + "/v2.0/";
+            selectSharePointSite.Close();
+         }
+      }
+
+      private void radioButton5_CheckedChanged( object sender, EventArgs e )
+      {
+         var rdoSender = sender as RadioButton;
+         _method = new HttpMethod(rdoSender.Text);
+      }
+
+      private void button1_Click( object sender, EventArgs e )
+      {
+         if ( _method == null
+              || string.IsNullOrWhiteSpace( _apiCall ) || _selectedResourceAuthResult == null )
+         {
+            MessageBox.Show( "Please first select an HTTP Method and typing an API call." );
+            return;
+         }
+         var url = _selectedApiEnpoint.Trim( '/' ) + "/" + _apiCall.Trim( '/' );
+         JObject jsonResponse = JSONResponse(url);
+         txtResponse.Text = jsonResponse?.ToString( Formatting.Indented );
+      }
+      private JObject JSONResponse(string url)
+      {
+         _webClientRest = WebRequest.CreateHttp( new Uri( url ) );
+         _webClientRest.Method = _method.ToString();
+         _webClientRest.Headers.Add( "Authorization", _selectedResourceAuthResult.CreateAuthorizationHeader() );
+         if ( _method != HttpMethod.Get )
+         {
+            using ( var writer = new StreamWriter( _webClientRest.GetRequestStream() ) )
+            {
+               writer.Write( _apiPayload );
 
             }
          }
+         WebResponse response;
+         JObject jsonResponse = null;
+         try
+         {
+            response = _webClientRest.GetResponse();
+         }
+         catch ( WebException webEx )
+         {
+            response = webEx.Response;
+         }
+         using ( var reader = new StreamReader( response.GetResponseStream() ) )
+         {
+            jsonResponse = JObject.Parse( reader.ReadToEnd() );
+         }
+         return jsonResponse;
+      }
+
+      private void textBox1_TextChanged( object sender, EventArgs e )
+      {
+         _apiCall = txtApiCall.Text;
+      }
+
+      private void txtPayload_TextChanged( object sender, EventArgs e )
+      {
+         _apiPayload = txtPayload.Text;
+      }
+
+      private void label4_Click( object sender, EventArgs e )
+      {
+
+      }
+
+      private void txtResponse_MouseDoubleClick( object sender, MouseEventArgs e )
+      {
+         var x = txtResponse.GetCharIndexFromPosition( e.Location );
+         var lineStart = txtResponse.GetFirstCharIndexOfCurrentLine();
+         var line = txtResponse.GetLineFromCharIndex( x );
+         var lineText = txtResponse.Lines[ line ].Trim().TrimEnd(',');
+         var parts = lineText.Split( ':' );
+         if ( parts.Length > 1 )
+         {
+            var call = parts[ 1 ].Trim().Trim( '"' );
+
+            Regex callMatch = new Regex( "drive(s)?/[^/]+/.*" );
+
+            if ( callMatch.IsMatch( call ) )
+            {
+               txtApiCall.Text = call;
+               var response = JSONResponse( _selectedApiEnpoint.Trim( '/' ) + "/" + call );
+               if ( Regex.IsMatch( response.ToString(), "\"folder\":" ) )
+                  txtApiCall.Text += "/children";
+
+               btnExecute.PerformClick();
+            }
+         }
+         else
+         {
+            MessageBox.Show( lineText );
+         }
+      }
+
+      private void btnFindByGuid_Click( object sender, EventArgs e )
+      {
+         string inputGuid = Microsoft.VisualBasic.Interaction.InputBox(
+               "Enter SharePoint Guid",
+               "Get FileInfo For SharePoint Guid" );
+         Guid guid;
+         if ( Guid.TryParse( inputGuid, out guid ) )
+         {
+            
+         }
+
       }
    }
 }

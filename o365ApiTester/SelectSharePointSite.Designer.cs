@@ -61,11 +61,14 @@
          this.lstSharePointSites.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+         this.lstSharePointSites.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
          this.lstSharePointSites.FormattingEnabled = true;
+         this.lstSharePointSites.ItemHeight = 20;
          this.lstSharePointSites.Location = new System.Drawing.Point(12, 12);
          this.lstSharePointSites.Name = "lstSharePointSites";
-         this.lstSharePointSites.Size = new System.Drawing.Size(243, 134);
+         this.lstSharePointSites.Size = new System.Drawing.Size(243, 124);
          this.lstSharePointSites.TabIndex = 2;
+         this.lstSharePointSites.SelectedIndexChanged += new System.EventHandler(this.lstSharePointSites_SelectedIndexChanged);
          // 
          // SelectSharePointSite
          // 
@@ -77,6 +80,7 @@
          this.Controls.Add(this.btnOk);
          this.Name = "SelectSharePointSite";
          this.Text = "Select SharePoint Site";
+         this.Load += new System.EventHandler(this.SelectSharePointSite_Load);
          this.ResumeLayout(false);
 
       }
