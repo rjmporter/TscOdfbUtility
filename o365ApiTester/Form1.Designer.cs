@@ -43,12 +43,12 @@
          this.radioButton5 = new System.Windows.Forms.RadioButton();
          this.label3 = new System.Windows.Forms.Label();
          this.pnlResults = new System.Windows.Forms.Panel();
+         this.txtResponse = new System.Windows.Forms.TextBox();
          this.label5 = new System.Windows.Forms.Label();
          this.txtPayload = new System.Windows.Forms.TextBox();
          this.label4 = new System.Windows.Forms.Label();
          this.btnExecute = new System.Windows.Forms.Button();
          this.panel3 = new System.Windows.Forms.Panel();
-         this.txtResponse = new System.Windows.Forms.TextBox();
          this.btnFindByGuid = new System.Windows.Forms.Button();
          this.panel1.SuspendLayout();
          this.panel2.SuspendLayout();
@@ -70,7 +70,6 @@
          // label1
          // 
          this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-         this.label1.AutoSize = true;
          this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
          this.label1.Location = new System.Drawing.Point(583, 6);
          this.label1.Name = "label1";
@@ -80,7 +79,6 @@
          // 
          // panel1
          // 
-         this.panel1.AutoSize = true;
          this.panel1.BackColor = System.Drawing.SystemColors.ActiveCaption;
          this.panel1.Controls.Add(this.lblServiceInfoOutput);
          this.panel1.Controls.Add(this.lblServiceInfoPanel);
@@ -93,7 +91,6 @@
          // lblServiceInfoOutput
          // 
          this.lblServiceInfoOutput.AutoEllipsis = true;
-         this.lblServiceInfoOutput.AutoSize = true;
          this.lblServiceInfoOutput.Dock = System.Windows.Forms.DockStyle.Bottom;
          this.lblServiceInfoOutput.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
          this.lblServiceInfoOutput.Location = new System.Drawing.Point(0, 13);
@@ -105,7 +102,6 @@
          // 
          // lblServiceInfoPanel
          // 
-         this.lblServiceInfoPanel.AutoSize = true;
          this.lblServiceInfoPanel.Dock = System.Windows.Forms.DockStyle.Top;
          this.lblServiceInfoPanel.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
          this.lblServiceInfoPanel.Location = new System.Drawing.Point(0, 0);
@@ -127,7 +123,6 @@
          // 
          // label2
          // 
-         this.label2.AutoSize = true;
          this.label2.Location = new System.Drawing.Point(5, 75);
          this.label2.Name = "label2";
          this.label2.Size = new System.Drawing.Size(72, 13);
@@ -146,7 +141,6 @@
          // 
          // radioButton1
          // 
-         this.radioButton1.AutoSize = true;
          this.radioButton1.Location = new System.Drawing.Point(8, 54);
          this.radioButton1.Name = "radioButton1";
          this.radioButton1.Size = new System.Drawing.Size(47, 17);
@@ -158,7 +152,6 @@
          // 
          // radioButton2
          // 
-         this.radioButton2.AutoSize = true;
          this.radioButton2.Location = new System.Drawing.Point(61, 54);
          this.radioButton2.Name = "radioButton2";
          this.radioButton2.Size = new System.Drawing.Size(54, 17);
@@ -170,7 +163,6 @@
          // 
          // radioButton3
          // 
-         this.radioButton3.AutoSize = true;
          this.radioButton3.Location = new System.Drawing.Point(121, 56);
          this.radioButton3.Name = "radioButton3";
          this.radioButton3.Size = new System.Drawing.Size(47, 17);
@@ -182,7 +174,6 @@
          // 
          // radioButton4
          // 
-         this.radioButton4.AutoSize = true;
          this.radioButton4.Location = new System.Drawing.Point(174, 56);
          this.radioButton4.Name = "radioButton4";
          this.radioButton4.Size = new System.Drawing.Size(61, 17);
@@ -194,7 +185,6 @@
          // 
          // radioButton5
          // 
-         this.radioButton5.AutoSize = true;
          this.radioButton5.Location = new System.Drawing.Point(241, 56);
          this.radioButton5.Name = "radioButton5";
          this.radioButton5.Size = new System.Drawing.Size(67, 17);
@@ -206,7 +196,6 @@
          // 
          // label3
          // 
-         this.label3.AutoSize = true;
          this.label3.Location = new System.Drawing.Point(5, 37);
          this.label3.Name = "label3";
          this.label3.Size = new System.Drawing.Size(108, 13);
@@ -226,9 +215,22 @@
          this.pnlResults.Size = new System.Drawing.Size(1001, 277);
          this.pnlResults.TabIndex = 12;
          // 
-         // label5
+         // txtResponse
          // 
-         this.label5.AutoSize = true;
+         this.txtResponse.Dock = System.Windows.Forms.DockStyle.Fill;
+         this.txtResponse.Location = new System.Drawing.Point(0, 13);
+         this.txtResponse.Multiline = true;
+         this.txtResponse.Name = "txtResponse";
+         this.txtResponse.ReadOnly = true;
+         this.txtResponse.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+         this.txtResponse.Size = new System.Drawing.Size(1001, 264);
+         this.txtResponse.TabIndex = 1;
+         this.txtResponse.WordWrap = false;
+         this.txtResponse.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.txtResponse_MouseDoubleClick);
+         // 
+         // label5
+         //// 
+//         this.label5.AutoSize = true;
          this.label5.Dock = System.Windows.Forms.DockStyle.Top;
          this.label5.Location = new System.Drawing.Point(0, 0);
          this.label5.Name = "label5";
@@ -251,7 +253,7 @@
          // 
          // label4
          // 
-         this.label4.AutoSize = true;
+//         this.label4.AutoSize = true;
          this.label4.Location = new System.Drawing.Point(5, 114);
          this.label4.Name = "label4";
          this.label4.Size = new System.Drawing.Size(45, 13);
@@ -291,21 +293,9 @@
          this.panel3.Size = new System.Drawing.Size(1001, 243);
          this.panel3.TabIndex = 16;
          // 
-         // txtResponse
-         // 
-         this.txtResponse.Dock = System.Windows.Forms.DockStyle.Fill;
-         this.txtResponse.Location = new System.Drawing.Point(0, 13);
-         this.txtResponse.Multiline = true;
-         this.txtResponse.Name = "txtResponse";
-         this.txtResponse.ReadOnly = true;
-         this.txtResponse.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-         this.txtResponse.Size = new System.Drawing.Size(1001, 264);
-         this.txtResponse.TabIndex = 1;
-         this.txtResponse.WordWrap = false;
-         this.txtResponse.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.txtResponse_MouseDoubleClick);
-         // 
          // btnFindByGuid
          // 
+         this.btnFindByGuid.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
          this.btnFindByGuid.Location = new System.Drawing.Point(717, 41);
          this.btnFindByGuid.Name = "btnFindByGuid";
          this.btnFindByGuid.Size = new System.Drawing.Size(161, 23);
@@ -319,7 +309,7 @@
          this.AcceptButton = this.btnExecute;
          this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-         this.AutoSize = true;
+//         this.AutoSize = true;
          this.ClientSize = new System.Drawing.Size(1001, 630);
          this.Controls.Add(this.panel3);
          this.Controls.Add(this.pnlResults);

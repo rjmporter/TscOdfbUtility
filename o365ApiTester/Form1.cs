@@ -20,14 +20,13 @@ namespace o365ApiTester
 {
    public partial class Form1 : Form
    {
-      private HttpWebRequest _webClientRest = null;
+
       private readonly List<KeyValuePair<string, CapabilityDiscoveryResult>> _discoveryResults;
       private AuthenticationResult _selectedResourceAuthResult;
       private CapabilityDiscoveryResult _selectedService;
       private string _selectedApiEnpoint;
       private HttpMethod _method;
       private string _apiCall;
-      private string _apiBody;
       private string _apiPayload = string.Empty;
 
       public Form1()
@@ -38,26 +37,27 @@ namespace o365ApiTester
 
       private async void Form1_Load( object sender, EventArgs e )
       {
-         
-         DiscoveryClient discoveryClient = new DiscoveryClient(() =>    {
-                                                                           var result = Program.authContext.AcquireToken( "https://api.office.com/discovery/", SiteSettings.ClientId, new Uri(SiteSettings.RedirectUrl));
-                                                                           return result.AccessToken;
-                                                                        });
-         var capabilities =  await discoveryClient.DiscoverCapabilitiesAsync();
+
+         DiscoveryClient discoveryClient = new DiscoveryClient( () =>
+         {
+            var result = Program.authContext.AcquireToken( "https://api.office.com/discovery/", SiteSettings.ClientId, new Uri( SiteSettings.RedirectUrl ) );
+            return result.AccessToken;
+         } );
+         var capabilities = await discoveryClient.DiscoverCapabilitiesAsync();
          var fileSources = new[]
                            {
                                  "MyFiles",
                                  "RootSite"
                            };
-         DataTable dt = new DataTable("Capabilites");
-         dt.Columns.Add( "Name", typeof ( string ) );
-         dt.Columns.Add( "CapabilityResult", typeof ( CapabilityDiscoveryResult ) );
+         DataTable dt = new DataTable( "Capabilites" );
+         dt.Columns.Add( "Name", typeof( string ) );
+         dt.Columns.Add( "CapabilityResult", typeof( CapabilityDiscoveryResult ) );
 
          dt.Rows.Add( "<Select a Resource>", null );
          dt.Rows.Add(
                "GraphApi",
-               new CapabilityDiscoveryResult( new Uri( SiteSettings.GraphApiEndpoint.Trim('/') ), SiteSettings.GraphResourceId ) );
-         foreach ( var capability in capabilities.Where(c=>fileSources.Contains(c.Key)  ) )
+               new CapabilityDiscoveryResult( new Uri( SiteSettings.GraphApiEndpoint.Trim( '/' ) ), SiteSettings.GraphResourceId ) );
+         foreach ( var capability in capabilities.Where( c => fileSources.Contains( c.Key ) ) )
          {
             if ( capability.Key == "RootSite" )
             {
@@ -74,13 +74,13 @@ namespace o365ApiTester
          }
          comboBox1.DisplayMember = "Name";
          comboBox1.ValueMember = "CapabilityResult";
-         
+
          comboBox1.DataSource = dt;
 
       }
       private void comboBox1_SelectedIndexChanged( object sender, EventArgs e )
       {
-        
+
          _selectedService = comboBox1.SelectedValue as CapabilityDiscoveryResult;
          if ( _selectedService != null )
          {
@@ -100,10 +100,10 @@ namespace o365ApiTester
                   SiteSettings.ClientId,
                   new Uri( SiteSettings.RedirectUrl ) );
 
-            lblServiceInfoOutput.Text =     $"Selected Resource:   {resourceId}\r\n"
+            lblServiceInfoOutput.Text = $"Selected Resource:   {resourceId}\r\n"
                                           + $"Selected Endpoint:   {_selectedApiEnpoint}\r\n"
                                           + $"User:                {_selectedResourceAuthResult.UserInfo.DisplayableId}";
-           
+
          }
       }
 
@@ -123,7 +123,7 @@ namespace o365ApiTester
       private void radioButton5_CheckedChanged( object sender, EventArgs e )
       {
          var rdoSender = sender as RadioButton;
-         _method = new HttpMethod(rdoSender.Text);
+         _method = new HttpMethod( rdoSender.Text );
       }
 
       private void button1_Click( object sender, EventArgs e )
@@ -135,38 +135,10 @@ namespace o365ApiTester
             return;
          }
          var url = _selectedApiEnpoint.Trim( '/' ) + "/" + _apiCall.Trim( '/' );
-         JObject jsonResponse = JSONResponse(url);
+         JObject jsonResponse = Program.JSONResponse( url, _method, _selectedResourceAuthResult, _apiPayload );
          txtResponse.Text = jsonResponse?.ToString( Formatting.Indented );
       }
-      private JObject JSONResponse(string url)
-      {
-         _webClientRest = WebRequest.CreateHttp( new Uri( url ) );
-         _webClientRest.Method = _method.ToString();
-         _webClientRest.Headers.Add( "Authorization", _selectedResourceAuthResult.CreateAuthorizationHeader() );
-         if ( _method != HttpMethod.Get )
-         {
-            using ( var writer = new StreamWriter( _webClientRest.GetRequestStream() ) )
-            {
-               writer.Write( _apiPayload );
 
-            }
-         }
-         WebResponse response;
-         JObject jsonResponse = null;
-         try
-         {
-            response = _webClientRest.GetResponse();
-         }
-         catch ( WebException webEx )
-         {
-            response = webEx.Response;
-         }
-         using ( var reader = new StreamReader( response.GetResponseStream() ) )
-         {
-            jsonResponse = JObject.Parse( reader.ReadToEnd() );
-         }
-         return jsonResponse;
-      }
 
       private void textBox1_TextChanged( object sender, EventArgs e )
       {
@@ -188,18 +160,18 @@ namespace o365ApiTester
          var x = txtResponse.GetCharIndexFromPosition( e.Location );
          var lineStart = txtResponse.GetFirstCharIndexOfCurrentLine();
          var line = txtResponse.GetLineFromCharIndex( x );
-         var lineText = txtResponse.Lines[ line ].Trim().TrimEnd(',');
+         var lineText = txtResponse.Lines[line].Trim().TrimEnd( ',' );
          var parts = lineText.Split( ':' );
          if ( parts.Length > 1 )
          {
-            var call = parts[ 1 ].Trim().Trim( '"' );
+            var call = parts[1].Trim().Trim( '"' );
 
             Regex callMatch = new Regex( "drive(s)?/[^/]+/.*" );
 
             if ( callMatch.IsMatch( call ) )
             {
                txtApiCall.Text = call;
-               var response = JSONResponse( _selectedApiEnpoint.Trim( '/' ) + "/" + call );
+               var response = Program.JSONResponse( _selectedApiEnpoint.Trim( '/' ) + "/" + call, HttpMethod.Get, _selectedResourceAuthResult );
                if ( Regex.IsMatch( response.ToString(), "\"folder\":" ) )
                   txtApiCall.Text += "/children";
 
@@ -212,16 +184,16 @@ namespace o365ApiTester
          }
       }
 
-      private void btnFindByGuid_Click( object sender, EventArgs e )
+      private async void btnFindByGuid_Click( object sender, EventArgs e )
       {
-         string inputGuid = Microsoft.VisualBasic.Interaction.InputBox(
-               "Enter SharePoint Guid",
-               "Get FileInfo For SharePoint Guid" );
-         Guid guid;
-         if ( Guid.TryParse( inputGuid, out guid ) )
+         var sharePointLocator = new GetBySharepointId();
+         var result = sharePointLocator.ShowDialog();
+         if ( result == DialogResult.OK )
          {
-            
+            var apiCall = await sharePointLocator.DrivesApiCall;
+            txtApiCall.Text = apiCall;
          }
+         
 
       }
    }

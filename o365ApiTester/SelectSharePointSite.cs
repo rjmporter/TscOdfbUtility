@@ -77,12 +77,17 @@ namespace o365ApiTester
       private static ClientContext _ctx;
       public static ClientContext GetSharePointContext( this Form form, string value )
       {
+         var valueUri = new Uri( value );
+         var resourceId = string.IsNullOrWhiteSpace( valueUri.PathAndQuery.Trim( '/' ) ) ?
+                           value :
+                           valueUri.AbsoluteUri.Replace( valueUri.PathAndQuery, "" );
          if ( value.Equals( _ctx?.Url, StringComparison.OrdinalIgnoreCase ) )
             return _ctx;
          _ctx = new ClientContext( value );
+         
          _ctx.ExecutingWebRequest += ( sender, args ) =>
          {
-            var result = Program.authContext.AcquireToken( value, SiteSettings.ClientId, new Uri( SiteSettings.RedirectUrl ) );
+            var result = Program.authContext.AcquireToken( resourceId, SiteSettings.ClientId, new Uri( SiteSettings.RedirectUrl ) );
             args.WebRequestExecutor.RequestHeaders.Add( "Authorization", result.CreateAuthorizationHeader() );
          };
          return _ctx;
